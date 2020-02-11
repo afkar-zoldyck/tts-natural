@@ -1,37 +1,50 @@
-## Welcome to GitHub Pages
+# Install TTS
+pip install --upgrade google-cloud-texttospeech
 
-You can use the [editor on GitHub](https://github.com/afkar-zoldyck/tts-natural/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
+# Upload file to google (sometimes you have to try it several times)
+from google.colab import files
+uploaded = files.upload()
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Create credential object and test access 
+from google.oauth2 import service_account
+from google.cloud import texttospeech
+credentials = service_account.Credentials.from_service_account_file('tts.json') # here insert the name of the json file
 
-### Markdown
+texttospeech.TextToSpeechClient(credentials=credentials)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+# Load text file
+name="speech.txt" # the name of the uploaded txt file that you want to have spoken
+output="output.mp3"
+with open(name, 'r') as file:
+    data = file.read().replace('\n', ' ')
 
-```markdown
-Syntax highlighted code block
+# Convert text to speech
 
-# Header 1
-## Header 2
-### Header 3
+# Instantiates a client
+client = texttospeech.TextToSpeechClient(credentials=credentials)
 
-- Bulleted
-- List
+# Set the text input to be synthesized
+synthesis_input = texttospeech.types.SynthesisInput(text=data)
 
-1. Numbered
-2. List
+# Build the voice request
+voice = texttospeech.types.VoiceSelectionParams(
+    name="id-ID-Wavenet-D",  
+    language_code='id-ID',
+    ssml_gender=texttospeech.enums.SsmlVoiceGender.NEUTRAL
+ )
 
-**Bold** and _Italic_ and `Code` text
+# Select the type of audio file
+audio_config = texttospeech.types.AudioConfig(
+    audio_encoding=texttospeech.enums.AudioEncoding.MP3,
+    speaking_rate=0.8
+    )
 
-[Link](url) and ![Image](src)
-```
+# Perform the text-to-speech request on the text input with the selected
+# voice parameters and audio file type
+response = client.synthesize_speech(synthesis_input, voice, audio_config)
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/afkar-zoldyck/tts-natural/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+# The response's audio_content is binary.
+with open(output, 'wb') as out:
+    # Write the response to the output file.
+    out.write(response.audio_content)
+    print('Audio content written "output.mp3"')
